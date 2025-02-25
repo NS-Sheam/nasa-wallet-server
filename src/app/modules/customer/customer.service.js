@@ -1,9 +1,24 @@
 import QueryBuilder from "../../helpers/QueryBuilder.js";
 import { Transaction } from "../transaction/transaction.model.js";
+import { User } from "../user/user.model.js";
 import { Customer } from "./customer.model.js";
 
 const getAllCustomers = async (query) => {
-  const resultQuery = new QueryBuilder(Customer.find().populate("user").populate("transactions"), query)
+  const findQuery = {};
+  console.log(query);
+
+  if (query.mobileNumber) {
+    // find user by mobile number login
+  }
+
+  const resultQuery = new QueryBuilder(
+    Customer.find({
+      ...findQuery,
+    })
+      .populate("user")
+      .populate("transactions"),
+    query
+  )
     .filter()
     .sort()
     .fields()
