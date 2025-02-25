@@ -1,11 +1,6 @@
 import { model, Schema } from "mongoose";
 const cashInRequestSchema = new Schema(
   {
-    userId: {
-      type: Schema.Types.ObjectId,
-      ref: "Customer",
-      required: true,
-    },
     agentId: {
       type: Schema.Types.ObjectId,
       ref: "Agent",
@@ -17,7 +12,7 @@ const cashInRequestSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "completed", "failed"],
+      enum: ["pending", "completed", "rejected"],
       default: "pending",
     },
     date: {

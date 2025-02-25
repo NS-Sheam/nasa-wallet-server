@@ -11,6 +11,7 @@ import { generateTransactionId } from "./transaction.utils.js";
 import config from "../../config/index.js";
 import { Agent } from "../agent/agent.model.js";
 import { PasswordHelper } from "../../utils/passwordHelpers.js";
+import { AdminService } from "../admin/admin.service.js";
 
 const getAllTransactions = async (query) => {
   const transactionSearchableFields = ["transactionId", "amount", "fee", "type", "status"];
@@ -35,6 +36,7 @@ const getAllTransactions = async (query) => {
 
 const sendMoney = async (payload) => {
   const { senderMobile, receiverMobile, amount } = payload;
+
   const session = await mongoose.startSession();
 
   try {
@@ -113,27 +115,26 @@ const sendMoney = async (payload) => {
 };
 
 const cashOut = async (payload) => {
-  const { customerNumber, agentMobile, amount, password } = payload;
+  const { customerNumber, agentMobile, password } = payload;
+  const amount = parseFloat(payload?.amount);
+  console.log("amount", amount);
   const session = await mongoose.startSession();
 
   try {
     await session.startTransaction();
 
-    // Validate the amount
     if (amount <= 0) {
       throw new AppError(StatusCodes.BAD_REQUEST, "Amount must be greater than 0!");
     }
 
-    // Find user and agent
     const customerUser = await User.findOne({ mobileNumber: customerNumber, role: USER_ROLES.CUSTOMER });
     if (!customerUser) {
       throw new AppError(StatusCodes.BAD_REQUEST, "Customer not found!");
     }
 
-    // Verify customer's password
-    const isPasswordMatch = await PasswordHelper.comparePassword(password, customerUser.password);
-    if (!isPasswordMatch) {
-      throw new AppError(StatusCodes.BAD_REQUEST, "Invalid password!");
+    const isPinMatch = await PasswordHelper.comparePassword(password, customerUser.password);
+    if (!isPinMatch) {
+      throw new AppError(StatusCodes.BAD_REQUEST, "Invalid account PIN!");
     }
 
     const agentUser = await User.findOne({ mobileNumber: agentMobile, role: USER_ROLES.AGENT });
@@ -141,7 +142,6 @@ const cashOut = async (payload) => {
       throw new AppError(StatusCodes.BAD_REQUEST, "Agent not found!");
     }
 
-    // Find customer and agent records
     const customer = await Customer.findOne({ user: customerUser._id });
     if (!customer) {
       throw new AppError(StatusCodes.BAD_REQUEST, "Customer account not found!");
@@ -152,39 +152,46 @@ const cashOut = async (payload) => {
       throw new AppError(StatusCodes.BAD_REQUEST, "Agent account not found!");
     }
 
-    if (customer.balance < amount) {
+    // Fee & Income Calculation
+    const feePercentage = 1.5;
+    const agentIncomePercentage = 1;
+    const adminIncomePercentage = 0.5;
+
+    const fee = (amount * feePercentage) / 100;
+    const agentIncome = (amount * agentIncomePercentage) / 100;
+    const adminIncome = (amount * adminIncomePercentage) / 100;
+    const totalDeduction = amount + fee;
+    if (customer.balance < totalDeduction) {
       throw new AppError(StatusCodes.BAD_REQUEST, "Insufficient balance!");
     }
-
-    // Calculate fees
-    const feePercentage = 1.5; // 1.5% fee
-    const fee = (amount * feePercentage) / 100;
-    const agentIncome = (amount * 1) / 100; // 1% for agent
-    const adminIncome = (amount * 0.5) / 100; // 0.5% for admin
-    const totalAmount = amount + fee;
-
-    // Deduct amount and fee from customer's balance
-    customer.balance -= totalAmount;
+    // Deduct from customer's balance
+    customer.balance -= totalDeduction;
     await customer.save({ session });
 
-    // Add amount to agent's balance
-    agent.balance += amount;
-    await agent.save({ session });
-
-    // Update agent's income
+    // Update agent balance and income
+    agent.balance += amount - fee;
     agent.income += agentIncome;
+
     await agent.save({ session });
 
-    // Update admin's income and total system money
     const adminUser = await User.findOne({ role: USER_ROLES.ADMIN });
-    const admin = await Admin.findOne({ user: adminUser._id });
-    admin.income += adminIncome;
-    admin.totalSystemMoney += fee;
-    await admin.save({ session });
+    if (!adminUser) {
+      throw new AppError(StatusCodes.INTERNAL_SERVER_ERROR, "Admin not found!");
+    }
 
-    // Record the transaction
+    const totalSystemMoney = (await AdminService.systemTotalMoney()) + adminIncome;
+
+    await Admin.findOneAndUpdate(
+      { user: adminUser._id },
+      {
+        totalSystemMoney,
+        $inc: { income: adminIncome },
+      },
+      { session, new: true }
+    );
+
     const transactionId = generateTransactionId();
-    const transaction = await Transaction.create(
+    const transaction = await Transaction.insertMany(
       [
         {
           transactionId,
@@ -200,12 +207,12 @@ const cashOut = async (payload) => {
     );
 
     await session.commitTransaction();
-    await session.endSession();
+    session.endSession();
 
     return transaction[0];
   } catch (error) {
     await session.abortTransaction();
-    await session.endSession();
+    session.endSession();
     throw error;
   }
 };
