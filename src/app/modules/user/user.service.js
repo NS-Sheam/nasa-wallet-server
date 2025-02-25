@@ -35,7 +35,7 @@ const createUser = async (payload) => {
     if (agent) {
       userPayload = { ...userPayload, ...agent };
     } else if (customer) {
-      userPayload = { ...userPayload, ...customer };
+      userPayload = { ...userPayload, ...customer, isVerified: true };
     }
 
     const user = await User.create([userPayload], { session, new: true });
@@ -103,4 +103,25 @@ const getMe = async (user) => {
   return result;
 };
 
-export const UserService = { createUser, getMe };
+const verifyUser = async (id) => {
+  const result = await User.findByIdAndUpdate(id, { isVerified: true }, { new: true }).select("-password");
+
+  if (!result) {
+    throw new AppError(StatusCodes.NOT_FOUND, "Verification failed");
+  }
+  return result;
+};
+
+const toggleUserStatus = async (id) => {
+  const isUserExist = await User.findOne({ _id: id, role: { $ne: USER_ROLES.ADMIN } });
+
+  if (!isUserExist) {
+    throw new AppError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
+  isUserExist.isActive = !isUserExist.isActive;
+  await isUserExist.save();
+  return isUserExist;
+};
+
+export const UserService = { createUser, getMe, verifyUser, toggleUserStatus };

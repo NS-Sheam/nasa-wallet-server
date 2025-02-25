@@ -34,4 +34,13 @@ const cashOut = catchAsync(async (req, res) => {
   });
 });
 
-export const TransactionController = { getAllTransactions, sendMoney, cashOut };
+const cashIn = catchAsync(async (req, res) => {
+  const result = await TransactionService.cashIn(req.body);
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Cash in successfully",
+    data: result,
+  });
+});
+export const TransactionController = { getAllTransactions, sendMoney, cashOut, cashIn };

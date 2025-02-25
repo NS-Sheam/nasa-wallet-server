@@ -18,7 +18,7 @@ const auth = (...roles) => {
 
     const isUserExist = await User.findById(verifiedUser.id);
 
-    if (!isUserExist || !isUserExist.isActive) {
+    if (!isUserExist || !isUserExist.isActive || !isUserExist.isVerified) {
       throw new AppError(StatusCodes.UNAUTHORIZED, "You are not authorized");
     }
 

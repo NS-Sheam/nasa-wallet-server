@@ -13,13 +13,22 @@ import { Agent } from "../agent/agent.model.js";
 import { PasswordHelper } from "../../utils/passwordHelpers.js";
 
 const getAllTransactions = async (query) => {
-  const resultQuery = new QueryBuilder(Transaction.find().populate("senderId receiverId"), query)
-    .filter()
+  const transactionSearchableFields = ["transactionId", "amount", "fee", "type", "status"];
+  let findQuery = {};
+  console.log(query);
+
+  if (query.userId) {
+    findQuery = { $or: [{ senderId: query.userId }, { receiverId: query.userId }] };
+  }
+
+  const resultQuery = new QueryBuilder(Transaction.find({ ...findQuery }).populate("senderId receiverId"), query)
+    .search(transactionSearchableFields)
     .sort()
     .fields()
     .paginate();
 
   const result = await resultQuery.modelQuery;
+
   const meta = await resultQuery.countTotal();
 
   return { result, meta };
@@ -203,44 +212,51 @@ const cashOut = async (payload) => {
 };
 
 const cashIn = async (payload) => {
-  const { agentMobile, amount, password } = payload;
+  const { agentMobile, customerMobile, amount, password } = payload;
   const session = await mongoose.startSession();
-
   try {
     await session.startTransaction();
 
-    // Validate the amount
     if (amount <= 0) {
       throw new AppError(StatusCodes.BAD_REQUEST, "Amount must be greater than 0!");
     }
 
-    // Find agent
     const agentUser = await User.findOne({ mobileNumber: agentMobile, role: USER_ROLES.AGENT });
     if (!agentUser) {
       throw new AppError(StatusCodes.BAD_REQUEST, "Agent not found!");
     }
 
-    // Verify agent's password
     const isPasswordMatch = await PasswordHelper.comparePassword(password, agentUser.password);
     if (!isPasswordMatch) {
       throw new AppError(StatusCodes.BAD_REQUEST, "Invalid password!");
     }
+    const customerUser = await User.findOne({ mobileNumber: customerMobile, role: USER_ROLES.CUSTOMER });
+    if (!customerUser) {
+      throw new AppError(StatusCodes.BAD_REQUEST, "Customer not found!");
+    }
 
-    // Find agent record
+    const customer = await Customer.findOne({ user: customerUser._id });
+    if (!customer) {
+      throw new AppError(StatusCodes.BAD_REQUEST, "Customer account not found!");
+    }
     const agent = await Agent.findOne({ user: agentUser._id });
     if (!agent) {
       throw new AppError(StatusCodes.BAD_REQUEST, "Agent account not found!");
     }
 
-    // Calculate fees
-    const feePercentage = 1.5; // 1.5% fee
-    const fee = (amount * feePercentage) / 100;
-    const totalAmount = amount + fee;
+    if (agent.balance < amount) {
+      throw new AppError(StatusCodes.BAD_REQUEST, "Insufficient balance!");
+    }
 
+    // Deduct amount and fee from customer's balance
+    customer.balance += amount;
+    await customer.save({ session });
     // Add amount to agent's balance
-    agent.balance += amount;
+    agent.balance -= amount;
     await agent.save({ session });
+    const adminUser = await User.findOne({ role: USER_ROLES.ADMIN });
 
+    await Admin.findOneAndUpdate({ user: adminUser._id }, { $inc: { totalSystemMoney: amount } }, { session });
     // Record the transaction
     const transactionId = generateTransactionId();
     const transaction = await Transaction.create(
@@ -248,18 +264,16 @@ const cashIn = async (payload) => {
         {
           transactionId,
           senderId: agentUser._id,
+          receiverId: customerUser._id,
           amount,
-          fee,
           type: "cashIn",
           status: "completed",
         },
       ],
       { session }
     );
-
     await session.commitTransaction();
     await session.endSession();
-
     return transaction[0];
   } catch (error) {
     await session.abortTransaction();
@@ -272,6 +286,7 @@ export const TransactionService = {
   getAllTransactions,
   sendMoney,
   cashOut,
+  cashIn,
 };
 
 //Cash In

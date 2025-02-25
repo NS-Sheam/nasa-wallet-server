@@ -22,6 +22,9 @@ const login = async (payload) => {
   if (!isUserExist.isActive) {
     throw new AppError(StatusCodes.FORBIDDEN, "This user is blocked!");
   }
+  if (!isUserExist.isVerified) {
+    throw new AppError(StatusCodes.FORBIDDEN, "This user is not verified!");
+  }
 
   const isPasswordMatch = await PasswordHelper.comparePassword(password, isUserExist.password);
   if (!isPasswordMatch) {

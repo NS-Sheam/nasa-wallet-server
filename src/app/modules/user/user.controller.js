@@ -23,4 +23,26 @@ const getMe = catchAsync(async (req, res) => {
   });
 });
 
-export const UserController = { createUser, getMe };
+const verifyUser = catchAsync(async (req, res) => {
+  console.log("hitting");
+
+  const result = await UserService.verifyUser(req.params.id);
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: "User verified successfully",
+    data: result,
+  });
+});
+
+const toggleUserStatus = catchAsync(async (req, res) => {
+  const result = await UserService.toggleUserStatus(req.params.id);
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: "User status updated successfully",
+    data: result,
+  });
+});
+
+export const UserController = { createUser, getMe, verifyUser, toggleUserStatus };
