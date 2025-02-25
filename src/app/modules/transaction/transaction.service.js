@@ -15,7 +15,6 @@ import { PasswordHelper } from "../../utils/passwordHelpers.js";
 const getAllTransactions = async (query) => {
   const transactionSearchableFields = ["transactionId", "amount", "fee", "type", "status"];
   let findQuery = {};
-  console.log(query);
 
   if (query.userId) {
     findQuery = { $or: [{ senderId: query.userId }, { receiverId: query.userId }] };

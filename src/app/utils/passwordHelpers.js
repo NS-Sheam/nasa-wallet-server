@@ -18,7 +18,7 @@ const comparePassword = async (password, hashedPassword) => {
     const isPasswordMatch = await bcrypt.compare(password, hashedPassword);
     return isPasswordMatch;
   } catch {
-    throw new AppError(StatusCodes.INTERNAL_SERVER_ERROR, "Error comparing password");
+    throw new AppError(StatusCodes.INTERNAL_SERVER_ERROR, "Password does not match");
   }
 };
 

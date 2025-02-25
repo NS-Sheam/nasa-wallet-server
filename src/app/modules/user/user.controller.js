@@ -24,8 +24,6 @@ const getMe = catchAsync(async (req, res) => {
 });
 
 const verifyUser = catchAsync(async (req, res) => {
-  console.log("hitting");
-
   const result = await UserService.verifyUser(req.params.id);
   sendResponse(res, {
     success: true,

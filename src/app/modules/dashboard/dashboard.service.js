@@ -60,7 +60,6 @@ const agentDashboardData = async (userId) => {
 
 const customerDashboardData = async (userId) => {
   const customer = await Customer.findOne({ user: userId }).populate("user");
-  console.log(userId, "customer");
 
   const findQuery = {
     $or: [{ senderId: userId }, { receiverId: userId }],

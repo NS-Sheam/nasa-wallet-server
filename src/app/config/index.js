@@ -12,6 +12,7 @@ export default {
   admin_email: process.env.ADMIN_EMAIL,
   admin_password: process.env.ADMIN_PASSWORD,
   admin_mobile_number: process.env.ADMIN_MOBILE_NUMBER,
+  client_url: process.env.CLIENT_URL,
   jwt: {
     access_secret: process.env.JWT_ACCESS_SECRET,
     refresh_secret: process.env.JWT_REFRESH_SECRET,

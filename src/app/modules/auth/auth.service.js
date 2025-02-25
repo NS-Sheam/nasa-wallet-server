@@ -32,6 +32,7 @@ const login = async (payload) => {
   }
 
   isUserExist.deviceId = deviceId;
+  isUserExist.lastLogin = Date.now();
   await isUserExist.save();
   const jwtPayload = {
     id: isUserExist._id,
@@ -55,4 +56,27 @@ const login = async (payload) => {
   };
 };
 
-export const AuthService = { login };
+const changePassword = async (user, payload) => {
+  const { oldPassword, newPassword } = payload;
+
+  const isUserExist = await User.findById(user.id);
+  if (!isUserExist) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "User not found!");
+  }
+
+  const isPasswordMatch = await PasswordHelper.comparePassword(oldPassword, isUserExist.password);
+  if (!isPasswordMatch) {
+    throw new AppError(StatusCodes.FORBIDDEN, "Old password is incorrect");
+  }
+
+  const hashedPassword = await PasswordHelper.hashedPassword(newPassword);
+  if (!hashedPassword) {
+    throw new AppError(StatusCodes.INTERNAL_SERVER_ERROR, "Error hashing password");
+  }
+
+  await User.findByIdAndUpdate(user.id, { password: hashedPassword }, { new: true });
+  const result = await User.findById(user.id).select("-password");
+  return result;
+};
+
+export const AuthService = { login, changePassword };
