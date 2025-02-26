@@ -1,7 +1,4 @@
 import QueryBuilder from "../../helpers/QueryBuilder.js";
-import { CashInRequest } from "../cashIn/cashIn.model.js";
-import { CashOutRequest } from "../cashOut/cashOut.model.js";
-import { User } from "../user/user.model.js";
 
 import { Agent } from "./agent.model.js";
 

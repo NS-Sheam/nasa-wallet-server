@@ -1,7 +1,7 @@
 import { model, Schema } from "mongoose";
 const cashInRequestSchema = new Schema(
   {
-    agentId: {
+    agent: {
       type: Schema.Types.ObjectId,
       ref: "Agent",
       required: true,
@@ -9,6 +9,7 @@ const cashInRequestSchema = new Schema(
     amount: {
       type: Number,
       required: true,
+      default: 100000,
     },
     status: {
       type: String,
