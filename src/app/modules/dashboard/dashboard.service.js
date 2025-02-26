@@ -1,6 +1,8 @@
 import config from "../../config/index.js";
 import { Admin } from "../admin/admin.model.js";
 import { Agent } from "../agent/agent.model.js";
+import { CashInRequest } from "../cashIn/cashInRequest.model.js";
+import { CashOutRequest } from "../cashOut/cashOutRequest.model.js";
 import { Customer } from "../customer/customer.model.js";
 import { Transaction } from "../transaction/transaction.model.js";
 import { USER_ROLES } from "../user/user.const.js";
@@ -17,8 +19,16 @@ const adminDashboardData = async () => {
 
   const totalBalance = admin.totalSystemMoney;
   const totalIncome = admin.income;
-  const pendingRequests = await Transaction.countDocuments({ status: "pending" });
-  const approvedRequests = await Transaction.countDocuments({ status: "completed" });
+  const agentCashInpendingRequests = await CashInRequest.countDocuments({ status: "pending" });
+
+  const agentCashOutpendingRequests = await CashOutRequest.countDocuments({ status: "pending" });
+  const pendingRequests = agentCashInpendingRequests + agentCashOutpendingRequests;
+  const agentCashInCompletedRequest = await CashInRequest.countDocuments({ status: "completed" });
+  const agentCashOutCompletedRequest = await CashOutRequest.countDocuments({ status: "completed" });
+  const approvedRequests = agentCashInCompletedRequest + agentCashOutCompletedRequest;
+  const agentCashInRejectedRequest = await CashInRequest.countDocuments({ status: "rejected" });
+  const agentCashOutRejectedRequest = await CashOutRequest.countDocuments({ status: "rejected" });
+  const rejectedRequests = agentCashInRejectedRequest + agentCashOutRejectedRequest;
   const totalSystemMoneyRequests = await Transaction.countDocuments();
   return {
     totalUsers,
@@ -31,6 +41,7 @@ const adminDashboardData = async () => {
     pendingRequests,
     approvedRequests,
     totalSystemMoneyRequests,
+    rejectedRequests,
   };
 };
 
@@ -43,8 +54,16 @@ const agentDashboardData = async (userId) => {
   const totalCashInRequests = await Transaction.countDocuments({ ...findQuery, type: "cashIn" });
   const totalCashOutRequests = await Transaction.countDocuments({ ...findQuery, type: "cashOut" });
   const totalTransactions = await Transaction.countDocuments({ ...findQuery });
-  const pendingRequests = await Transaction.countDocuments({ ...findQuery, status: "pending" });
-  const approvedRequests = await Transaction.countDocuments({ ...findQuery, status: "completed" });
+  const agentCashInpendingRequests = await CashInRequest.countDocuments({ agent: agent._id, status: "pending" });
+
+  const agentCashOutpendingRequests = await CashOutRequest.countDocuments({ agent: agent._id, status: "pending" });
+  const pendingRequests = agentCashInpendingRequests + agentCashOutpendingRequests;
+  const agentCashInCompletedRequest = await CashInRequest.countDocuments({ agent: agent._id, status: "completed" });
+  const agentCashOutCompletedRequest = await CashOutRequest.countDocuments({ agent: agent._id, status: "completed" });
+  const approvedRequests = agentCashInCompletedRequest + agentCashOutCompletedRequest;
+  const agentCashInRejectedRequest = await CashInRequest.countDocuments({ agent: agent._id, status: "rejected" });
+  const agentCashOutRejectedRequest = await CashOutRequest.countDocuments({ agent: agent._id, status: "rejected" });
+  const rejectedRequests = agentCashInRejectedRequest + agentCashOutRejectedRequest;
   const agentBalance = agent.balance;
   const agentIncome = agent.income;
   return {
@@ -55,6 +74,7 @@ const agentDashboardData = async (userId) => {
     agentIncome,
     pendingRequests,
     approvedRequests,
+    rejectedRequests,
   };
 };
 

@@ -5,7 +5,6 @@ import { Customer } from "./customer.model.js";
 
 const getAllCustomers = async (query) => {
   const findQuery = {};
-  console.log(query);
 
   if (query.mobileNumber) {
     // find user by mobile number login

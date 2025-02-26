@@ -117,7 +117,6 @@ const sendMoney = async (payload) => {
 const cashOut = async (payload) => {
   const { customerNumber, agentMobile, password } = payload;
   const amount = parseFloat(payload?.amount);
-  console.log("amount", amount);
   const session = await mongoose.startSession();
 
   try {

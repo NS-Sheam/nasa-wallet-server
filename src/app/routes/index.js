@@ -6,6 +6,7 @@ import { AgentRoutes } from "../modules/agent/agent.routes.js";
 import { TransactionRoutes } from "../modules/transaction/transaction.routes.js";
 import { DashboardRoutes } from "../modules/dashboard/dashboard.routes.js";
 import { CashInRequestRoutes } from "../modules/cashIn/cashInRequest.routes.js";
+import { CashOutRequestRoutes } from "../modules/cashOut/cashOut.routes.js";
 
 const router = Router();
 
@@ -37,6 +38,10 @@ const moduleRoutes = [
   {
     path: "/cash-in-requests",
     route: CashInRequestRoutes,
+  },
+  {
+    path: "/cash-out-requests",
+    route: CashOutRequestRoutes,
   },
 ];
 moduleRoutes.forEach((route) => router.use(route?.path, route?.route));

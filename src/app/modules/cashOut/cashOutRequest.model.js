@@ -2,7 +2,7 @@ import { model, Schema } from "mongoose";
 
 const cashOutRequestSchema = new Schema(
   {
-    agentId: {
+    agent: {
       type: Schema.Types.ObjectId,
       ref: "Agent",
       required: true,

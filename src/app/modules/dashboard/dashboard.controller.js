@@ -5,6 +5,7 @@ import { DashboardService } from "./dashboard.service.js";
 
 const adminDashboardData = catchAsync(async (req, res) => {
   const result = await DashboardService.adminDashboardData();
+
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
